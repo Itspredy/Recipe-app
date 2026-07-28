@@ -45,18 +45,23 @@ export default function CookScreen() {
   if (!recipe) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
 
   const steps = recipe.steps;
-  const current = steps[step];
+  // Clamp so a fast double-tap can never run the index past the last step.
+  const safeStep = Math.min(Math.max(step, 0), steps.length - 1);
+  const current = steps[safeStep];
   const mins = current ? parseStepMinutes(current.text) : null;
   const ings = current ? stepIngredients(current.text, recipe.ingredients) : [];
-  const isLast = step === steps.length - 1;
-  const progress = Math.round(((step + 1) / steps.length) * 100);
+  const isLast = safeStep === steps.length - 1;
+  const progress = Math.round(((safeStep + 1) / steps.length) * 100);
   const mm = Math.floor(secs / 60);
   const ss = String(secs % 60).padStart(2, '0');
 
   const resetTimer = () => { setSecs(0); setRunning(false); };
   const next = () => {
-    if (isLast) { setPhase('done'); return; }
-    setStep((s) => s + 1);
+    setStep((s) => {
+      if (s >= steps.length - 1) return s; // already last — Done handled below
+      return s + 1;
+    });
+    if (safeStep >= steps.length - 1) setPhase('done');
     resetTimer();
   };
   const prev = () => { setStep((s) => Math.max(0, s - 1)); resetTimer(); };
@@ -82,7 +87,7 @@ export default function CookScreen() {
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
         <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: theme.dim2 }}>
-          Step {step + 1} of {steps.length}
+          Step {safeStep + 1} of {steps.length}
         </Text>
         <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: radius.pill, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="close" size={17} color={theme.txt} />
