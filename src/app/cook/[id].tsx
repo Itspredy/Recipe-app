@@ -105,8 +105,8 @@ export default function CookScreen() {
 
         {ings.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {ings.map((g) => (
-              <View key={g} style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill }}>
+            {ings.map((g, i) => (
+              <View key={i} style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill }}>
                 <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: theme.dim }}>{g}</Text>
               </View>
             ))}
