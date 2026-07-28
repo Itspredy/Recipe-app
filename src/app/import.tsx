@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../components/ui';
 import { useTheme } from '../lib/ThemeProvider';
+import { structureFromText } from '../lib/api';
 import { formatDuration, formatQuantity } from '../lib/format';
 import { fonts, radius } from '../lib/theme';
 import type { ImportedRecipe } from '../lib/types';
@@ -25,11 +26,15 @@ export default function ImportScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { run, reset, status, error } = useImportRecipe();
+  const [mode, setMode] = useState<'url' | 'text'>('url');
   const [url, setUrl] = useState('');
+  const [text, setText] = useState('');
+  const [textBusy, setTextBusy] = useState(false);
+  const [textError, setTextError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportedRecipe | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const busy = status === 'importing';
+  const busy = status === 'importing' || textBusy;
 
   const onImport = async () => {
     const result = await run(url.trim());
@@ -37,6 +42,20 @@ export default function ImportScreen() {
     if ('existingId' in result) router.replace(`/recipe/${result.existingId}`);
     else setPreview(result.imported);
   };
+
+  const onStructure = async () => {
+    setTextBusy(true);
+    setTextError(null);
+    try {
+      setPreview(await structureFromText(text.trim()));
+    } catch (e) {
+      setTextError(e instanceof Error ? e.message : 'Something went wrong.');
+    } finally {
+      setTextBusy(false);
+    }
+  };
+
+  const goText = () => { reset(); setTextError(null); setMode('text'); };
 
   const onSave = async () => {
     if (!preview) return;
@@ -53,20 +72,54 @@ export default function ImportScreen() {
             <Icon name="chevronLeft" size={24} color={theme.txt} />
           </Pressable>
           <Text style={{ fontFamily: fonts.heading, fontSize: 22, color: theme.txt }}>
-            {preview ? 'Check it over' : 'Paste a link'}
+            {preview ? 'Check it over' : mode === 'text' ? 'Paste the caption' : 'Paste a link'}
           </Text>
         </View>
 
         {busy ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
             <ActivityIndicator size="large" color={theme.acc} />
-            <Text style={{ fontFamily: fonts.heading, fontSize: 20, color: theme.txt }}>Extracting recipe…</Text>
+            <Text style={{ fontFamily: fonts.heading, fontSize: 20, color: theme.txt }}>
+              {textBusy ? 'Reading the recipe…' : 'Extracting recipe…'}
+            </Text>
             <Text style={{ fontFamily: fonts.body, fontSize: 14, color: theme.dim, textAlign: 'center', maxWidth: 260 }}>
-              Reading the page and pulling out ingredients and steps.
+              Pulling out the ingredients and steps.
             </Text>
           </View>
         ) : preview ? (
-          <PreviewBody preview={preview} onSave={onSave} onRedo={() => { setPreview(null); reset(); }} saving={saving} />
+          <PreviewBody preview={preview} onSave={onSave} onRedo={() => { setPreview(null); reset(); setTextError(null); }} saving={saving} />
+        ) : mode === 'text' ? (
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, paddingTop: 24, gap: 14 }}>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder={'Paste the recipe caption or text here — ingredients and steps.'}
+              placeholderTextColor={theme.dim2}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+              style={{
+                height: 220,
+                borderRadius: radius.md,
+                padding: 16,
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: theme.line,
+                fontFamily: fonts.body,
+                fontSize: 16,
+                lineHeight: 23,
+                color: theme.txt,
+              }}
+            />
+            <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: theme.dim, lineHeight: 19 }}>
+              Works when a link is blocked (common for Instagram). Copy the post’s caption and drop it in — Groq turns it into a recipe.
+            </Text>
+            {textError ? <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: '#e5776b', lineHeight: 20 }}>{textError}</Text> : null}
+            <GradientButton label="Read recipe" icon="sparkles" onPress={onStructure} disabled={text.trim().length < 20} style={{ marginTop: 6 }} />
+            <Pressable onPress={() => { setMode('url'); setTextError(null); }} style={{ alignSelf: 'center', paddingVertical: 8 }}>
+              <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 15, color: theme.acc }}>Import from a link instead</Text>
+            </Pressable>
+          </KeyboardAvoidingView>
         ) : (
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, paddingTop: 24, gap: 14 }}>
             <TextInput
@@ -93,8 +146,22 @@ export default function ImportScreen() {
             <Text style={{ fontFamily: fonts.body, fontSize: 13.5, color: theme.dim, lineHeight: 19 }}>
               Works with most recipe blogs, plus Instagram, TikTok and YouTube links.
             </Text>
-            {error ? <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: '#e5776b', lineHeight: 20 }}>{error}</Text> : null}
+            {error ? (
+              <View style={{ gap: 10 }}>
+                <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: '#e5776b', lineHeight: 20 }}>{error}</Text>
+                <Pressable
+                  onPress={goText}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.md, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.card }}
+                >
+                  <Icon name="edit" size={16} color={theme.acc} />
+                  <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: theme.acc }}>Paste the caption instead</Text>
+                </Pressable>
+              </View>
+            ) : null}
             <GradientButton label="Import" icon="sparkles" onPress={onImport} disabled={!url.trim()} style={{ marginTop: 6 }} />
+            <Pressable onPress={goText} style={{ alignSelf: 'center', paddingVertical: 8 }}>
+              <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 15, color: theme.dim }}>Can’t import a link? Paste the caption</Text>
+            </Pressable>
           </KeyboardAvoidingView>
         )}
       </View>

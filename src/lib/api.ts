@@ -31,3 +31,31 @@ export async function importRecipe(url: string): Promise<ImportedRecipe> {
 
   return payload as ImportedRecipe;
 }
+
+/**
+ * Manual fallback for when a link is blocked or unscrapeable (common for
+ * Instagram): the user pastes the caption / recipe text and Groq structures it.
+ */
+export async function structureFromText(text: string): Promise<ImportedRecipe> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}/structure`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch {
+    throw new Error(
+      "Can't reach the import server. Check it's running and that EXPO_PUBLIC_API_URL points at your computer's IP.",
+    );
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "Couldn't read a recipe from that text.");
+  }
+
+  return payload as ImportedRecipe;
+}
