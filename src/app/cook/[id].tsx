@@ -1,193 +1,183 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getRecipe } from '../../db/recipes';
-import { formatQuantity } from '../../lib/format';
-import type { Recipe } from '../../lib/types';
-import { colors, radius, spacing } from '../../lib/theme';
+import { Icon } from '../../components/Icon';
+import { GradientButton, PhotoSlot } from '../../components/ui';
+import { getRecipe, markCooked } from '../../db/store';
+import { useTheme } from '../../lib/ThemeProvider';
+import { parseStepMinutes, stepIngredients } from '../../lib/cook';
+import { fonts, gradientProps, radius } from '../../lib/theme';
+import { totalMinutes, type Recipe } from '../../lib/types';
 
-/** Full-screen, one-step-at-a-time cooking view. */
 export default function CookScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const { theme } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [index, setIndex] = useState(0);
-  const [showIngredients, setShowIngredients] = useState(false);
+  const [step, setStep] = useState(0);
+  const [phase, setPhase] = useState<'cook' | 'done'>('cook');
+  const [rating, setRating] = useState(0);
+  const [secs, setSecs] = useState(0);
+  const [running, setRunning] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    getRecipe(db, id).then(setRecipe);
-  }, [db, id]);
+    getRecipe(id).then(setRecipe);
+  }, [id]);
 
-  const ingredientNames = useMemo(
-    () => recipe?.ingredients.map((i) => i.name) ?? [],
-    [recipe],
-  );
+  useEffect(() => {
+    timer.current = setInterval(() => {
+      setSecs((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, []);
 
-  if (!recipe) return <View style={styles.screen} />;
+  useEffect(() => {
+    if (secs === 0) setRunning(false);
+  }, [secs]);
 
-  const step = recipe.steps[index];
-  const isLast = index === recipe.steps.length - 1;
+  if (!recipe) return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
+
+  const steps = recipe.steps;
+  const current = steps[step];
+  const mins = current ? parseStepMinutes(current.text) : null;
+  const ings = current ? stepIngredients(current.text, recipe.ingredients) : [];
+  const isLast = step === steps.length - 1;
+  const progress = Math.round(((step + 1) / steps.length) * 100);
+  const mm = Math.floor(secs / 60);
+  const ss = String(secs % 60).padStart(2, '0');
+
+  const resetTimer = () => { setSecs(0); setRunning(false); };
+  const next = () => {
+    if (isLast) { setPhase('done'); return; }
+    setStep((s) => s + 1);
+    resetTimer();
+  };
+  const prev = () => { setStep((s) => Math.max(0, s - 1)); resetTimer(); };
+  const startTimer = () => {
+    if (secs > 0) { resetTimer(); return; }
+    if (mins) { setSecs(mins * 60); setRunning(true); }
+  };
+
+  if (phase === 'done') {
+    return (
+      <DoneScreen
+        recipe={recipe}
+        rating={rating}
+        onRate={setRating}
+        onSave={async () => { await markCooked(recipe.id, rating); router.replace('/library'); }}
+        onNote={() => router.replace(`/recipe/${recipe.id}`)}
+      />
+    );
+  }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
-      <View style={styles.topBar}>
-        <View style={styles.progress}>
-          {recipe.steps.map((_, i) => (
-            <View key={i} style={[styles.progressBar, i <= index && styles.progressBarDone]} />
-          ))}
-        </View>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.close}>
-          <Text style={styles.closeIcon}>✕</Text>
+    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: theme.dim2 }}>
+          Step {step + 1} of {steps.length}
+        </Text>
+        <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: radius.pill, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="close" size={17} color={theme.txt} />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.stepLabel}>
-          Step {index + 1} <Text style={styles.stepLabelMuted}>of {recipe.steps.length}</Text>
-        </Text>
+      {/* Progress */}
+      <View style={{ height: 6, borderRadius: radius.pill, backgroundColor: theme.card2, overflow: 'hidden', marginBottom: 40 }}>
+        <LinearGradient colors={[theme.accsFrom, theme.accsTo]} {...gradientProps} style={{ height: '100%', width: `${progress}%`, borderRadius: radius.pill }} />
+      </View>
 
-        <Text style={styles.stepText}>
-          {highlightIngredients(step.text, ingredientNames)}
-        </Text>
+      {/* Step body */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 26 }} showsVerticalScrollIndicator={false}>
+        <Text style={{ fontFamily: fonts.heading, fontSize: 40, lineHeight: 46, color: theme.txt }}>{current?.text}</Text>
 
-        {showIngredients ? (
-          <View style={styles.ingredientPanel}>
-            {recipe.ingredients.map((ingredient, i) => (
-              <Text key={i} style={styles.ingredientLine}>
-                {ingredient.quantity !== null ? (
-                  <Text style={styles.ingredientAmount}>
-                    {formatQuantity(ingredient.quantity)}
-                    {ingredient.unit ? ` ${ingredient.unit}` : ''}{' '}
-                  </Text>
-                ) : null}
-                {ingredient.name}
-              </Text>
+        {ings.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {ings.map((g) => (
+              <View key={g} style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill }}>
+                <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: theme.dim }}>{g}</Text>
+              </View>
             ))}
           </View>
         ) : null}
-      </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
-        <Pressable
-          style={styles.listButton}
-          onPress={() => setShowIngredients((visible) => !visible)}
-        >
-          <Text style={styles.listButtonIcon}>☰</Text>
-        </Pressable>
-
-        {index > 0 ? (
-          <Pressable style={styles.backButton} onPress={() => setIndex((i) => i - 1)}>
-            <Text style={styles.backButtonText}>Back</Text>
+        {mins ? (
+          <Pressable
+            onPress={startTimer}
+            style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 11, height: 56, paddingHorizontal: 22, borderRadius: radius.md, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.acc }}
+          >
+            <Icon name="clock" size={20} color={theme.acc} />
+            <Text style={{ fontFamily: fonts.heading, fontSize: 19, color: theme.acc }}>
+              {secs > 0 ? `${mm}:${ss} left` : `Start ${mins} min timer`}
+            </Text>
           </Pressable>
         ) : null}
+      </ScrollView>
 
-        <Pressable
-          style={styles.nextButton}
-          onPress={() => (isLast ? router.back() : setIndex((i) => i + 1))}
-        >
-          <Text style={styles.nextButtonText}>{isLast ? 'Done' : 'Next'}</Text>
+      {/* Nav */}
+      <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+        <Pressable onPress={prev} disabled={step === 0} style={{ width: 76, height: 66, borderRadius: radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center', opacity: step === 0 ? 0.4 : 1 }}>
+          <Icon name="chevronLeft" size={22} color={theme.txt} />
         </Pressable>
+        <GradientButton label={isLast ? 'Finish' : 'Next step'} iconRight="arrowRight" height={66} onPress={next} style={{ flex: 1 }} />
       </View>
     </View>
   );
 }
 
-/**
- * Tints ingredient mentions inside the instruction so they're scannable while
- * cooking. Longest names first, so "olive oil" wins over "oil".
- */
-function highlightIngredients(text: string, names: string[]) {
-  const candidates = names
-    .filter((name) => name.length > 2)
-    .sort((a, b) => b.length - a.length)
-    .map(escapeRegExp);
+function DoneScreen({
+  recipe,
+  rating,
+  onRate,
+  onSave,
+  onNote,
+}: {
+  recipe: Recipe;
+  rating: number;
+  onRate: (n: number) => void;
+  onSave: () => void;
+  onNote: () => void;
+}) {
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const total = totalMinutes(recipe);
 
-  if (!candidates.length) return text;
-
-  const pattern = new RegExp(`(${candidates.join('|')})`, 'gi');
-
-  // split() with a capture group puts the matches at the odd indices, so the
-  // position alone tells us what to tint — no second (stateful) regex test.
-  return text.split(pattern).map((part, i) =>
-    i % 2 === 1 ? (
-      <Text key={i} style={styles.highlight}>
-        {part}
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 60, paddingHorizontal: 26, paddingBottom: insets.bottom + 16, alignItems: 'center', gap: 22 }}>
+      <View style={{ width: 150, height: 150, borderRadius: radius.pill, overflow: 'hidden', borderWidth: 1, borderColor: theme.line }}>
+        {recipe.imageUrl ? null : <PhotoSlot title={recipe.title} icon="flame" />}
+      </View>
+      <Text style={{ fontFamily: fonts.heading, fontSize: 36, lineHeight: 38, color: theme.txt, textAlign: 'center' }}>
+        Enjoy your <Text style={{ color: theme.acc }}>meal</Text>
       </Text>
-    ) : (
-      part
-    ),
+      <Text style={{ fontFamily: fonts.body, fontSize: 15.5, lineHeight: 23, color: theme.dim, textAlign: 'center', maxWidth: 280 }}>
+        {recipe.title}
+        {total ? ` · ${total} minutes, start to plate.` : '.'} Rate it so future-you remembers.
+      </Text>
+
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Pressable key={n} onPress={() => onRate(n)} hitSlop={4}>
+            <Icon name={n <= rating ? 'starFilled' : 'star'} size={34} color={n <= rating ? theme.acc : theme.dim2} />
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={{ flex: 1 }} />
+
+      <View style={{ width: '100%', gap: 10 }}>
+        <GradientButton label="Save to cooked" onPress={onSave} />
+        <Pressable onPress={onNote} style={{ height: 52, borderRadius: radius.md, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: theme.txt }}>Add a note</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.card },
-
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  progress: { flex: 1, flexDirection: 'row', gap: spacing.xs },
-  progressBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
-  progressBarDone: { backgroundColor: colors.accent },
-  close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeIcon: { fontSize: 18, color: colors.textMuted },
-
-  body: { padding: spacing.xl, gap: spacing.lg },
-  stepLabel: { fontSize: 26, fontWeight: '700', color: colors.text },
-  stepLabelMuted: { color: colors.textFaint, fontWeight: '400' },
-  stepText: { fontSize: 22, lineHeight: 33, color: colors.text },
-  highlight: { color: colors.accent, fontWeight: '600' },
-
-  ingredientPanel: {
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    backgroundColor: colors.background,
-    borderRadius: radius.lg,
-    gap: spacing.sm,
-  },
-  ingredientLine: { fontSize: 15, color: colors.text, lineHeight: 21 },
-  ingredientAmount: { fontWeight: '700' },
-
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  listButton: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listButtonIcon: { fontSize: 18, color: colors.accent },
-  backButton: {
-    paddingHorizontal: spacing.lg,
-    height: 52,
-    justifyContent: 'center',
-  },
-  backButtonText: { fontSize: 16, color: colors.textMuted, fontWeight: '500' },
-  nextButton: {
-    flex: 1,
-    height: 52,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextButtonText: { color: '#fff', fontSize: 17, fontWeight: '600' },
-});

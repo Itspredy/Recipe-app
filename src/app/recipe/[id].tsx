@@ -1,218 +1,239 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
-import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { deleteRecipe, getRecipe } from '../../db/recipes';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from '../../components/Icon';
+import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../../components/ui';
+import { getRecipe, saveNotes, toggleFavorite } from '../../db/store';
+import { useTheme } from '../../lib/ThemeProvider';
+import { parseStepMinutes } from '../../lib/cook';
 import { formatDuration, formatQuantity } from '../../lib/format';
-import type { Recipe } from '../../lib/types';
-import { colors, radius, spacing } from '../../lib/theme';
+import { fonts, radius } from '../../lib/theme';
+import { difficultyLabel, totalMinutes, type Recipe } from '../../lib/types';
 
-export default function RecipeScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+const ABS = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+type Tab = 'ing' | 'steps' | 'notes';
+
+export default function RecipeDetail() {
+  const { theme } = useTheme();
   const router = useRouter();
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [servings, setServings] = useState<number | null>(null);
+  const [servings, setServings] = useState(4);
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [fav, setFav] = useState(false);
+  const [tab, setTab] = useState<Tab>('ing');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    getRecipe(db, id).then((found) => {
-      setRecipe(found);
-      setServings(found?.servings ?? null);
+    getRecipe(id).then((r) => {
+      if (!r) return;
+      setRecipe(r);
+      setServings(r.servings || 1);
+      setFav(r.isFavorite);
+      setNotes(r.notes);
     });
-  }, [db, id]);
+  }, [id]);
 
-  const confirmDelete = useCallback(() => {
-    Alert.alert('Delete recipe?', 'This removes it from your saved recipes.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteRecipe(db, id);
-          router.replace('/');
-        },
-      },
-    ]);
-  }, [db, id, router]);
+  if (!recipe) return <ScreenBackground><View style={{ flex: 1 }} /></ScreenBackground>;
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable onPress={confirmDelete} hitSlop={12}>
-          <Text style={styles.headerAction}>Delete</Text>
-        </Pressable>
-      ),
-    });
-  }, [navigation, confirmDelete]);
-
-  if (!recipe || servings === null) return <View style={styles.screen} />;
-
-  // Everything was captured at the recipe's original serving count, so scaling
-  // is just a ratio applied at render time — the stored values never change.
   const scale = servings / (recipe.servings || 1);
-  const prep = formatDuration(recipe.prepMinutes);
-  const cook = formatDuration(recipe.cookMinutes);
+  const total = totalMinutes(recipe);
+
+  const onFav = async () => {
+    setFav((v) => !v);
+    await toggleFavorite(recipe.id);
+  };
+
+  const iconBtn = {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(14,10,8,0.42)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  };
 
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {recipe.imageUrl ? (
-          <Image source={recipe.imageUrl} style={styles.hero} contentFit="cover" cachePolicy="disk" />
-        ) : null}
-
-        <View style={styles.section}>
-          <Text style={styles.title}>{recipe.title}</Text>
-
-          <View style={styles.metaRow}>
-            {prep ? <Text style={styles.meta}>{prep} prep</Text> : null}
-            {cook ? <Text style={styles.meta}>{cook} cook</Text> : null}
-            {recipe.sourceAuthor ? <Text style={styles.meta}>{recipe.sourceAuthor}</Text> : null}
-          </View>
-
-          {recipe.description ? <Text style={styles.description}>{recipe.description}</Text> : null}
-
-          {recipe.sourceUrl ? (
-            <Pressable onPress={() => WebBrowser.openBrowserAsync(recipe.sourceUrl!)}>
-              <Text style={styles.link}>View original ↗</Text>
+    <ScreenBackground>
+      <ScrollView contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={{ height: 396, width: '100%' }}>
+          {recipe.imageUrl ? <Image source={recipe.imageUrl} style={ABS} contentFit="cover" /> : <PhotoSlot title={recipe.title} icon="flame" />}
+          <LinearGradient colors={['rgba(10,7,6,0.5)', 'transparent', 'transparent', theme.bg]} locations={[0, 0.34, 0.58,0.99]} style={ABS} />
+          <View style={{ position: 'absolute', top: insets.top + 6, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Pressable onPress={() => router.back()} style={iconBtn}>
+              <Icon name="chevronLeft" size={19} color="#fff" />
             </Pressable>
-          ) : null}
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
-            <View style={styles.stepper}>
-              <Pressable
-                style={styles.stepperButton}
-                onPress={() => setServings((n) => Math.max(1, (n ?? 1) - 1))}
-              >
-                <Text style={styles.stepperIcon}>−</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Pressable onPress={onFav} style={iconBtn}>
+                <Icon name={fav ? 'heartFilled' : 'heart'} size={19} color={fav ? '#ff8f6a' : '#fff'} />
               </Pressable>
-              <Text style={styles.stepperValue}>
-                {servings} {servings === 1 ? 'serve' : 'serves'}
-              </Text>
-              <Pressable style={styles.stepperButton} onPress={() => setServings((n) => (n ?? 1) + 1)}>
-                <Text style={styles.stepperIcon}>+</Text>
+              <Pressable style={iconBtn}>
+                <Icon name="share" size={18} color="#fff" />
               </Pressable>
             </View>
           </View>
-
-          <View style={styles.card}>
-            {recipe.ingredients.map((ingredient, index) => (
-              <View
-                key={`${ingredient.name}-${index}`}
-                style={[styles.ingredient, index > 0 && styles.divider]}
-              >
-                <Text style={styles.ingredientText}>
-                  {ingredient.quantity !== null ? (
-                    <Text style={styles.ingredientAmount}>
-                      {formatQuantity(ingredient.quantity * scale)}
-                      {ingredient.unit ? ` ${ingredient.unit}` : ''}{' '}
-                    </Text>
-                  ) : null}
-                  {ingredient.name}
-                  {ingredient.note ? <Text style={styles.note}>, {ingredient.note}</Text> : null}
-                </Text>
-              </View>
-            ))}
-          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Steps</Text>
-          <View style={styles.card}>
-            {recipe.steps.map((step, index) => (
-              <View key={index} style={[styles.step, index > 0 && styles.divider]}>
-                <Text style={styles.stepNumber}>{index + 1}</Text>
-                <Text style={styles.stepText}>{step.text}</Text>
+        {/* Body overlaps hero */}
+        <View style={{ paddingHorizontal: 20, marginTop: -58, gap: 20 }}>
+          <View style={{ gap: 12 }}>
+            {recipe.tags.length ? (
+              <View style={{ flexDirection: 'row', gap: 7, flexWrap: 'wrap' }}>
+                {recipe.tags.slice(0, 3).map((t, i) => (
+                  <Tag key={t} label={t} tone={i === 0 ? 'sage' : 'accent'} />
+                ))}
               </View>
-            ))}
+            ) : null}
+            <Text style={{ fontFamily: fonts.heading, fontSize: 34, lineHeight: 36, color: theme.txt }}>{recipe.title}</Text>
+            {recipe.description ? (
+              <Text style={{ fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: theme.dim }}>{recipe.description}</Text>
+            ) : null}
           </View>
+
+          {/* Stat pills */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <StatPill value={total ? `${total} min` : '—'} label="total" />
+            <StatPill value={String(servings)} label="servings" />
+            <StatPill value={difficultyLabel(recipe)} label="effort" />
+          </View>
+
+          {/* Tabs */}
+          <View style={{ flexDirection: 'row', padding: 5, borderRadius: radius.pill, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, gap: 4 }}>
+            {([['ing', 'Ingredients'], ['steps', 'Instructions'], ['notes', 'Notes']] as [Tab, string][]).map(([key, label]) => {
+              const on = tab === key;
+              return on ? (
+                <Pressable key={key} onPress={() => setTab(key)} style={{ flex: 1, borderRadius: radius.pill, overflow: 'hidden' }}>
+                  <LinearGradient colors={[theme.accsFrom, theme.accsTo]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 40, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: theme.onAccent }}>{label}</Text>
+                  </LinearGradient>
+                </Pressable>
+              ) : (
+                <Pressable key={key} onPress={() => setTab(key)} style={{ flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: theme.dim }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {tab === 'ing' ? (
+            <View style={{ gap: 14 }}>
+              {/* Scale card */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 18, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line }}>
+                <View style={{ gap: 1 }}>
+                  <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: theme.txt }}>Scale it</Text>
+                  <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 12.5, color: theme.dim2 }}>quantities update live</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <Pressable onPress={() => setServings((n) => Math.max(1, n - 1))} style={{ width: 36, height: 36, borderRadius: radius.pill, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.card2, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="minus" size={16} color={theme.txt} />
+                  </Pressable>
+                  <Text style={{ fontFamily: fonts.heading, fontSize: 20, color: theme.txt, minWidth: 22, textAlign: 'center' }}>{servings}</Text>
+                  <Pressable onPress={() => setServings((n) => Math.min(20, n + 1))} style={{ width: 36, height: 36, borderRadius: radius.pill, overflow: 'hidden' }}>
+                    <LinearGradient colors={[theme.accsFrom, theme.accsTo]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="plus" size={16} color={theme.onAccent} />
+                    </LinearGradient>
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Checklist */}
+              <View>
+                {recipe.ingredients.map((ing, i) => {
+                  const done = !!checked[i];
+                  const label = [ing.quantity !== null ? formatQuantity(ing.quantity * scale) : '', ing.unit ?? '', ing.name].filter(Boolean).join(' ');
+                  return (
+                    <Pressable
+                      key={i}
+                      onPress={() => setChecked((c) => ({ ...c, [i]: !c[i] }))}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.line }}
+                    >
+                      {done ? (
+                        <View style={{ width: 26, height: 26, borderRadius: radius.pill, backgroundColor: theme.sage, alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="check" size={15} color="#1a1f14" />
+                        </View>
+                      ) : (
+                        <View style={{ width: 26, height: 26, borderRadius: radius.pill, borderWidth: 2, borderColor: theme.line }} />
+                      )}
+                      <Text style={{ flex: 1, fontFamily: done ? fonts.body : fonts.bodyMedium, fontSize: 16, color: done ? theme.dim2 : theme.txt, textDecorationLine: done ? 'line-through' : 'none' }}>
+                        {label}
+                        {ing.note ? <Text style={{ color: theme.dim2 }}>, {ing.note}</Text> : null}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {tab === 'steps' ? (
+            <View style={{ gap: 16 }}>
+              {recipe.steps.map((s, i) => {
+                const mins = parseStepMinutes(s.text);
+                return (
+                  <View key={i} style={{ flexDirection: 'row', gap: 14 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: radius.pill, backgroundColor: theme.card2, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontFamily: fonts.heading, fontSize: 15, color: theme.acc }}>{i + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 6, paddingTop: 3 }}>
+                      <Text style={{ fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: theme.txt }}>{s.text}</Text>
+                      {mins ? (
+                        <View style={{ alignSelf: 'flex-start', borderWidth: 1, borderColor: theme.line, backgroundColor: theme.card, paddingVertical: 5, paddingHorizontal: 11, borderRadius: radius.pill }}>
+                          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12.5, color: theme.acc }}>{mins} min timer</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {tab === 'notes' ? (
+            <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, gap: 8 }}>
+              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.9, textTransform: 'uppercase', color: theme.dim2 }}>My notes</Text>
+              <TextInput
+                value={notes}
+                onChangeText={setNotes}
+                onBlur={() => saveNotes(recipe.id, notes)}
+                placeholder="Tweaks, timings, what you'd change next time…"
+                placeholderTextColor={theme.dim2}
+                multiline
+                style={{ fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: theme.txt, minHeight: 80, textAlignVertical: 'top' }}
+              />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
-      {recipe.steps.length > 0 ? (
-        <View style={styles.footer}>
-          <Pressable style={styles.cookButton} onPress={() => router.push(`/cook/${id}`)}>
-            <Text style={styles.cookButtonText}>Start cooking</Text>
-          </Pressable>
+      {recipe.steps.length ? (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: insets.bottom + 14, paddingTop: 14 }}>
+          <LinearGradient colors={['transparent', theme.bg]} style={{ ...ABS, top: -30 }} pointerEvents="none" />
+          <GradientButton
+            label="Start cooking"
+            icon="flame"
+            height={60}
+            onPress={() => router.push(`/cook/${recipe.id}?servings=${servings}`)}
+          />
         </View>
       ) : null}
-    </View>
+    </ScreenBackground>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxl * 3 },
-  headerAction: { color: colors.danger, fontSize: 15, fontWeight: '500' },
-
-  hero: { width: '100%', height: 240, backgroundColor: colors.accentSoft },
-
-  section: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' },
-
-  title: { fontSize: 26, fontWeight: '700', color: colors.text, lineHeight: 32 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  meta: { fontSize: 14, color: colors.textMuted },
-  description: { fontSize: 15, color: colors.textMuted, lineHeight: 22 },
-  link: { fontSize: 14, color: colors.accent, fontWeight: '500' },
-
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  stepperButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperIcon: { fontSize: 18, color: colors.accent, fontWeight: '600', lineHeight: 22 },
-  stepperValue: { fontSize: 14, color: colors.text, fontWeight: '600', minWidth: 68, textAlign: 'center' },
-
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden' },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-
-  ingredient: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
-  ingredientText: { fontSize: 16, color: colors.text, lineHeight: 22 },
-  ingredientAmount: { fontWeight: '700' },
-  note: { color: colors.textMuted },
-
-  step: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
-  stepNumber: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accent,
-    backgroundColor: colors.accentSoft,
-    width: 24,
-    height: 24,
-    borderRadius: radius.pill,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  stepText: { flex: 1, fontSize: 15, color: colors.text, lineHeight: 23 },
-
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    backgroundColor: colors.background,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  cookButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingVertical: spacing.md + 2,
-    alignItems: 'center',
-  },
-  cookButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+function StatPill({ value, label }: { value: string; label: string }) {
+  const { theme } = useTheme();
+  return (
+    <View style={{ flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', gap: 3 }}>
+      <Text style={{ fontFamily: fonts.heading, fontSize: 19, color: theme.txt }}>{value}</Text>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 0.7, textTransform: 'uppercase', color: theme.dim2 }}>{label}</Text>
+    </View>
+  );
+}
