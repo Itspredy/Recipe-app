@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ImportedRecipe } from './types';
 
 /**
@@ -8,13 +9,40 @@ import type { ImportedRecipe } from './types';
  */
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787';
 
+const DEVICE_KEY = 'recipe.deviceId';
+let deviceIdPromise: Promise<string> | null = null;
+
+/**
+ * Stable per-install id, sent as x-device-id so the backend can rate limit per
+ * device. Without it every user behind the same carrier NAT shares one bucket
+ * and a handful of heavy users would lock everyone else out.
+ */
+function getDeviceId(): Promise<string> {
+  deviceIdPromise ??= (async () => {
+    try {
+      const existing = await AsyncStorage.getItem(DEVICE_KEY);
+      if (existing) return existing;
+      const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      await AsyncStorage.setItem(DEVICE_KEY, id);
+      return id;
+    } catch {
+      return 'anonymous';
+    }
+  })();
+  return deviceIdPromise;
+}
+
+async function headers() {
+  return { 'Content-Type': 'application/json', 'x-device-id': await getDeviceId() };
+}
+
 export async function importRecipe(url: string): Promise<ImportedRecipe> {
   let response: Response;
 
   try {
     response = await fetch(`${API_URL}/import`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await headers(),
       body: JSON.stringify({ url }),
     });
   } catch {
@@ -42,7 +70,7 @@ export async function structureFromText(text: string): Promise<ImportedRecipe> {
   try {
     response = await fetch(`${API_URL}/structure`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await headers(),
       body: JSON.stringify({ text }),
     });
   } catch {
