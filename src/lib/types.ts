@@ -26,7 +26,7 @@ export type ImportedRecipe = {
   sourceAuthor: string | null;
 };
 
-/** A recipe row as stored locally, with its children loaded. */
+/** A recipe as stored locally, with its children. */
 export type Recipe = {
   id: string;
   title: string;
@@ -38,12 +38,18 @@ export type Recipe = {
   servings: number;
   prepMinutes: number | null;
   cookMinutes: number | null;
+  tags: string[];
+  isFavorite: boolean;
+  notes: string;
+  rating: number; // 0–5, 0 means unrated
+  cookedCount: number;
+  lastCookedAt: number | null;
   createdAt: number;
   ingredients: Ingredient[];
   steps: Step[];
 };
 
-/** Home-screen list item — no ingredients/steps, so the list query stays cheap. */
+/** Home-list item — omits ingredients/steps so lists stay light. */
 export type RecipeSummary = {
   id: string;
   title: string;
@@ -52,5 +58,27 @@ export type RecipeSummary = {
   sourceAuthor: string | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
+  tags: string[];
+  isFavorite: boolean;
+  cookedCount: number;
+  lastCookedAt: number | null;
   createdAt: number;
 };
+
+export function totalMinutes(r: {
+  prepMinutes: number | null;
+  cookMinutes: number | null;
+}): number {
+  return (r.prepMinutes ?? 0) + (r.cookMinutes ?? 0);
+}
+
+export function difficultyLabel(r: {
+  prepMinutes: number | null;
+  cookMinutes: number | null;
+}): string {
+  const t = totalMinutes(r);
+  if (t === 0) return 'Easy';
+  if (t <= 30) return 'Easy';
+  if (t <= 75) return 'Medium';
+  return 'Patient';
+}

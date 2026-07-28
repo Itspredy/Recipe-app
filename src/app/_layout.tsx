@@ -1,49 +1,62 @@
-import { Stack, useRouter } from 'expo-router';
-import { ShareIntentProvider } from 'expo-share-intent';
-import { SQLiteProvider } from 'expo-sqlite';
+import { Caprasimo_400Regular } from '@expo-google-fonts/caprasimo';
+import {
+  Figtree_400Regular,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+} from '@expo-google-fonts/figtree';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
-import { Suspense } from 'react';
-import { migrate } from '../db/schema';
-import { colors } from '../lib/theme';
+import { ThemeProvider, useTheme } from '../lib/ThemeProvider';
 
 export default function RootLayout() {
-  const router = useRouter();
+  const [fontsLoaded] = useFonts({
+    Caprasimo_400Regular,
+    Figtree_400Regular,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+  });
 
   return (
-    <ShareIntentProvider
-      options={{
-        resetOnBackground: true,
-        onResetShareIntent: () => router.replace('/'),
-      }}
-    >
-      <Suspense fallback={<Loading />}>
-        <SQLiteProvider databaseName="recipes.db" onInit={migrate} useSuspense>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.text,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          >
-            <Stack.Screen name="index" options={{ title: 'My Recipes' }} />
-            <Stack.Screen name="add" options={{ title: 'Add a recipe', presentation: 'modal' }} />
-            <Stack.Screen name="shareintent" options={{ headerShown: false }} />
-            <Stack.Screen name="recipe/[id]" options={{ title: '' }} />
-            <Stack.Screen name="cook/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-          </Stack>
-        </SQLiteProvider>
-      </Suspense>
-    </ShareIntentProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <Root ready={fontsLoaded} />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
-function Loading() {
+function Root({ ready }: { ready: boolean }) {
+  const { theme } = useTheme();
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator color={theme.acc} />
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-      <ActivityIndicator color={colors.accent} />
-    </View>
+    <>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.bg },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="add" options={{ presentation: 'transparentModal', animation: 'fade' }} />
+        <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="recipe/[id]" />
+        <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+      </Stack>
+    </>
   );
 }

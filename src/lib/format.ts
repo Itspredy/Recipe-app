@@ -32,3 +32,17 @@ export function formatDuration(minutes: number | null): string | null {
   const rest = minutes % 60;
   return rest ? `${hours}h ${rest}m` : `${hours}h`;
 }
+
+/** "Cooked 2 days ago" style relative label for the history list. */
+export function relativeTime(timestamp: number | null): string {
+  if (!timestamp) return 'Not cooked yet';
+  const diff = Date.now() - timestamp;
+  const day = 86_400_000;
+  if (diff < day) return 'Cooked today';
+  const days = Math.floor(diff / day);
+  if (days === 1) return 'Cooked yesterday';
+  if (days < 7) return `Cooked ${days} days ago`;
+  if (days < 14) return 'Cooked last week';
+  if (days < 60) return `Cooked ${Math.floor(days / 7)} weeks ago`;
+  return `Cooked ${Math.floor(days / 30)} months ago`;
+}

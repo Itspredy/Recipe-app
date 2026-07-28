@@ -1,16 +1,9 @@
-import { getShareExtensionKey } from 'expo-share-intent';
-
 /**
- * When iOS hands a shared link to the app, expo-router asks us where to send it.
- * Anything carrying the share-extension payload goes to the import screen.
+ * Routes deep links / system paths. The share-extension flow needs a native dev
+ * build (not Expo Go or web), so for the previewable app we simply pass paths
+ * through untouched — no expo-share-intent import, which keeps web and Expo Go
+ * from loading a native-only module at startup.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }) {
-  try {
-    if (path.includes(`dataUrl=${getShareExtensionKey()}`)) {
-      return '/shareintent';
-    }
-    return path;
-  } catch {
-    return '/';
-  }
+  return path;
 }
