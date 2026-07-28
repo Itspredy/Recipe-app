@@ -61,6 +61,29 @@ EXPO_PUBLIC_API_URL=http://192.168.1.10:8787
 - **Done** — star rating → saves to Cooked history
 - **Search / Cooked / Profile** — filters, stats, and a persisted light/dark toggle
 
+## Instagram / TikTok → recipe (the core feature)
+
+Self-hosted `yt-dlp` gets blocked by IG/TikTok from cloud IPs, so social links use
+a **managed scraper (Apify) first**, then `yt-dlp` (great for YouTube), then an
+in-app **"paste the caption" manual fallback** so an import never hard-fails.
+
+To turn on reliable IG/TikTok import on your deployed backend:
+
+1. Get an **Apify** API token (<https://console.apify.com>).
+2. Set it on the backend host (Railway → Variables):
+   ```
+   APIFY_TOKEN=apify_api_xxx
+   ```
+   Optional: `APIFY_IG_ACTOR`, `APIFY_TIKTOK_ACTOR` to pin specific scrapers;
+   `YTDLP_PROXY` / `YTDLP_COOKIES` to harden the yt-dlp fallback.
+3. Redeploy the backend (it now also exposes `POST /structure` for the manual
+   paste flow). All keys stay server-side — nothing ships in the app.
+
+See `backend/.env.example` for the full list. Swapping Apify for another provider
+(EnsembleData, ScrapeCreators, a RapidAPI actor) is a single new function in
+`backend/src/services/fetchers.js` returning the same `{ caption, videoUrl, … }`
+shape.
+
 ## Notes / next steps
 
 - Real photos come from imports; seed recipes use themed gradient tiles.
