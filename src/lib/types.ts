@@ -8,6 +8,8 @@ export type Ingredient = {
 
 export type Step = {
   text: string;
+  /** Server-provided timer for this step, in minutes. Undefined/null for manual and seed recipes — cook mode falls back to parsing it out of the text. */
+  minutes?: number | null;
 };
 
 /** Shape returned by the import backend. */
@@ -21,7 +23,8 @@ export type ImportedRecipe = {
   steps: Step[];
   tags: string[];
   imageUrl: string | null;
-  sourceUrl: string;
+  /** Null for a pasted-text import — there's no link to dedupe or re-import against. */
+  sourceUrl: string | null;
   sourcePlatform: string;
   sourceAuthor: string | null;
 };

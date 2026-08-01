@@ -11,6 +11,15 @@ export function parseStepMinutes(text: string): number | null {
   return minutes > 0 ? minutes : null;
 }
 
+/**
+ * A step's timer: prefer the server's own extracted `minutes` (reliable,
+ * schema-enforced) and only fall back to regex-parsing the wording for
+ * manually-entered and seed recipes, which never have that field.
+ */
+export function stepMinutes(step: Step): number | null {
+  return step.minutes ?? parseStepMinutes(step.text);
+}
+
 /** Ingredient names mentioned in a step, longest-first so "olive oil" beats "oil". */
 export function stepIngredients(text: string, ingredients: Ingredient[]): string[] {
   const lower = text.toLowerCase();
@@ -22,5 +31,5 @@ export function stepIngredients(text: string, ingredients: Ingredient[]): string
 }
 
 export function stepMinutesList(steps: Step[]): (number | null)[] {
-  return steps.map((s) => parseStepMinutes(s.text));
+  return steps.map(stepMinutes);
 }

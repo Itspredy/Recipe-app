@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,19 +15,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../components/ui';
 import { useTheme } from '../lib/ThemeProvider';
-import { structureFromText } from '../lib/api';
+import { structureText } from '../lib/api';
 import { formatDuration, formatQuantity } from '../lib/format';
+import { toImportedRecipe } from '../lib/mapImported';
 import { fonts, radius } from '../lib/theme';
 import type { ImportedRecipe } from '../lib/types';
 import { saveImported, useImportRecipe } from '../lib/useImportRecipe';
+
+const STAGE_COPY: Record<string, string> = {
+  downloading: 'Fetching the video…',
+  transcribing: 'Listening to the audio…',
+  structuring: 'Writing out the recipe…',
+};
 
 export default function ImportScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { run, reset, status, error } = useImportRecipe();
+  const { url: sharedUrl } = useLocalSearchParams<{ url?: string }>();
+  const { run, reset, status, error, stage } = useImportRecipe();
   const [mode, setMode] = useState<'url' | 'text'>('url');
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(sharedUrl ?? '');
   const [text, setText] = useState('');
   const [textBusy, setTextBusy] = useState(false);
   const [textError, setTextError] = useState<string | null>(null);
@@ -43,11 +51,31 @@ export default function ImportScreen() {
     else setPreview(result.imported);
   };
 
+  // Arrived here from the share sheet with a link already in hand — the
+  // user's intent was "import this", so skip the extra tap.
+  const autoImportedRef = useRef(false);
+  useEffect(() => {
+    if (sharedUrl && !autoImportedRef.current) {
+      autoImportedRef.current = true;
+      onImport();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedUrl]);
+
   const onStructure = async () => {
     setTextBusy(true);
     setTextError(null);
     try {
-      setPreview(await structureFromText(text.trim()));
+      const job = await structureText(text.trim());
+      if (job.status === 'completed') {
+        setPreview(toImportedRecipe(job));
+      } else {
+        setTextError(
+          job.status === 'not_a_recipe'
+            ? job.message ?? "We couldn't find a recipe in this text."
+            : job.error ?? 'Something went wrong.',
+        );
+      }
     } catch (e) {
       setTextError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
@@ -80,7 +108,7 @@ export default function ImportScreen() {
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
             <ActivityIndicator size="large" color={theme.acc} />
             <Text style={{ fontFamily: fonts.heading, fontSize: 20, color: theme.txt }}>
-              {textBusy ? 'Reading the recipe…' : 'Extracting recipe…'}
+              {textBusy ? 'Reading the recipe…' : (stage && STAGE_COPY[stage]) || 'Extracting recipe…'}
             </Text>
             <Text style={{ fontFamily: fonts.body, fontSize: 14, color: theme.dim, textAlign: 'center', maxWidth: 260 }}>
               Pulling out the ingredients and steps.
