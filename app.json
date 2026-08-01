@@ -9,8 +9,11 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.recipe.saver",
-      "supportsTablet": false
+      "bundleIdentifier": "com.kunalrecipe.saver",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -49,6 +52,29 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "ShareExtension",
+                  "bundleIdentifier": "com.kunalrecipe.saver.share-extension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.kunalrecipe.saver"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "4104d009-8327-439c-92ab-9d1a18af3201"
+      }
     }
   }
 }

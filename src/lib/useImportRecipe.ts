@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
-import { importRecipe } from './api';
+import { parseRecipe } from './api';
 import { findBySourceUrl, saveImported } from '../db/store';
+import { toImportedRecipe } from './mapImported';
+import type { JobStage } from './serverTypes';
 import type { ImportedRecipe } from './types';
 
 type Status = 'idle' | 'importing' | 'error';
@@ -12,11 +14,13 @@ type Status = 'idle' | 'importing' | 'error';
 export function useImportRecipe() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [stage, setStage] = useState<JobStage>(null);
 
   const run = useCallback(
     async (url: string): Promise<{ existingId: string } | { imported: ImportedRecipe } | null> => {
       setStatus('importing');
       setError(null);
+      setStage(null);
 
       try {
         const existingId = await findBySourceUrl(url);
@@ -25,9 +29,22 @@ export function useImportRecipe() {
           return { existingId };
         }
 
-        const imported = await importRecipe(url);
-        setStatus('idle');
-        return { imported };
+        const job = await parseRecipe(url, setStage);
+
+        if (job.status === 'completed') {
+          setStatus('idle');
+          return { imported: toImportedRecipe(job) };
+        }
+
+        // 'not_a_recipe' and 'failed' both resolved without throwing — the
+        // server successfully ran the pipeline but has no recipe to show.
+        setError(
+          job.status === 'not_a_recipe'
+            ? job.message ?? "We couldn't find a recipe in this content."
+            : job.error ?? 'Something went wrong.',
+        );
+        setStatus('error');
+        return null;
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : 'Something went wrong.');
         setStatus('error');
@@ -40,9 +57,10 @@ export function useImportRecipe() {
   const reset = useCallback(() => {
     setStatus('idle');
     setError(null);
+    setStage(null);
   }, []);
 
-  return { run, reset, status, error };
+  return { run, reset, status, error, stage };
 }
 
 export { saveImported };

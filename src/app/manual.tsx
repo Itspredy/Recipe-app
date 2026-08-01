@@ -48,8 +48,8 @@ function parseIngredient(line: string): Ingredient | null {
     i += 1;
   }
   const name = parts.slice(i).join(' ');
-  if (!name) return { quantity, unit, name: text, category: null };
-  return { quantity, unit, name, category: null };
+  if (!name) return { quantity, unit, name: text, note: null, category: null };
+  return { quantity, unit, name, note: null, category: null };
 }
 
 export default function ManualScreen() {

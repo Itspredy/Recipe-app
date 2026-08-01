@@ -8,10 +8,10 @@ import { Icon } from '../../components/Icon';
 import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../../components/ui';
 import { getRecipe, saveNotes, toggleFavorite } from '../../db/store';
 import { useTheme } from '../../lib/ThemeProvider';
-import { parseStepMinutes } from '../../lib/cook';
+import { stepMinutes } from '../../lib/cook';
 import { formatDuration, formatQuantity } from '../../lib/format';
 import { fonts, radius } from '../../lib/theme';
-import { difficultyLabel, totalMinutes, type Recipe } from '../../lib/types';
+import { difficultyLabel, totalMinutes, type Ingredient, type Recipe } from '../../lib/types';
 
 const ABS = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
 type Tab = 'ing' | 'steps' | 'notes';
@@ -144,39 +144,20 @@ export default function RecipeDetail() {
                 </View>
               </View>
 
-              {/* Checklist */}
-              <View>
-                {recipe.ingredients.map((ing, i) => {
-                  const done = !!checked[i];
-                  const label = [ing.quantity !== null ? formatQuantity(ing.quantity * scale) : '', ing.unit ?? '', ing.name].filter(Boolean).join(' ');
-                  return (
-                    <Pressable
-                      key={i}
-                      onPress={() => setChecked((c) => ({ ...c, [i]: !c[i] }))}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.line }}
-                    >
-                      {done ? (
-                        <View style={{ width: 26, height: 26, borderRadius: radius.pill, backgroundColor: theme.sage, alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon name="check" size={15} color="#1a1f14" />
-                        </View>
-                      ) : (
-                        <View style={{ width: 26, height: 26, borderRadius: radius.pill, borderWidth: 2, borderColor: theme.line }} />
-                      )}
-                      <Text style={{ flex: 1, fontFamily: done ? fonts.body : fonts.bodyMedium, fontSize: 16, color: done ? theme.dim2 : theme.txt, textDecorationLine: done ? 'line-through' : 'none' }}>
-                        {label}
-                        {ing.note ? <Text style={{ color: theme.dim2 }}>, {ing.note}</Text> : null}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {/* Checklist — grouped by category once an import supplies two or more, flat otherwise */}
+              <IngredientChecklist
+                ingredients={recipe.ingredients}
+                scale={scale}
+                checked={checked}
+                onToggle={(i) => setChecked((c) => ({ ...c, [i]: !c[i] }))}
+              />
             </View>
           ) : null}
 
           {tab === 'steps' ? (
             <View style={{ gap: 16 }}>
               {recipe.steps.map((s, i) => {
-                const mins = parseStepMinutes(s.text);
+                const mins = stepMinutes(s);
                 return (
                   <View key={i} style={{ flexDirection: 'row', gap: 14 }}>
                     <View style={{ width: 32, height: 32, borderRadius: radius.pill, backgroundColor: theme.card2, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
@@ -225,6 +206,115 @@ export default function RecipeDetail() {
         </View>
       ) : null}
     </ScreenBackground>
+  );
+}
+
+const CATEGORY_LABEL: Record<string, string> = {
+  produce: 'Produce',
+  dairy: 'Dairy',
+  meat: 'Meat',
+  seafood: 'Seafood',
+  pantry: 'Pantry',
+  spices: 'Spices & herbs',
+  bakery: 'Bakery',
+  frozen: 'Frozen',
+  other: 'Other',
+};
+// Roughly "shop the perimeter first" order — produce/meat/seafood/dairy/bakery
+// tend to be fresh sections, pantry/spices/frozen are aisles.
+const CATEGORY_ORDER = ['produce', 'meat', 'seafood', 'dairy', 'bakery', 'pantry', 'spices', 'frozen', 'other'];
+
+function IngredientRow({
+  ingredient,
+  scale,
+  done,
+  onToggle,
+}: {
+  ingredient: Ingredient;
+  scale: number;
+  done: boolean;
+  onToggle: () => void;
+}) {
+  const { theme } = useTheme();
+  const label = [
+    ingredient.quantity !== null ? formatQuantity(ingredient.quantity * scale) : '',
+    ingredient.unit ?? '',
+    ingredient.name,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.line }}
+    >
+      {done ? (
+        <View style={{ width: 26, height: 26, borderRadius: radius.pill, backgroundColor: theme.sage, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="check" size={15} color="#1a1f14" />
+        </View>
+      ) : (
+        <View style={{ width: 26, height: 26, borderRadius: radius.pill, borderWidth: 2, borderColor: theme.line }} />
+      )}
+      <Text style={{ flex: 1, fontFamily: done ? fonts.body : fonts.bodyMedium, fontSize: 16, color: done ? theme.dim2 : theme.txt, textDecorationLine: done ? 'line-through' : 'none' }}>
+        {label}
+        {ingredient.note ? <Text style={{ color: theme.dim2 }}>, {ingredient.note}</Text> : null}
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Flat list when there's nothing to group by (manual entries, older imports
+ * with no category), otherwise grouped under a small heading per category —
+ * this is the payoff for the Groq schema carrying `category` per ingredient.
+ */
+function IngredientChecklist({
+  ingredients,
+  scale,
+  checked,
+  onToggle,
+}: {
+  ingredients: Ingredient[];
+  scale: number;
+  checked: Record<number, boolean>;
+  onToggle: (index: number) => void;
+}) {
+  const { theme } = useTheme();
+  const categories = new Set(ingredients.map((ing) => ing.category).filter((c): c is string => !!c));
+
+  if (categories.size < 2) {
+    return (
+      <View>
+        {ingredients.map((ing, i) => (
+          <IngredientRow key={i} ingredient={ing} scale={scale} done={!!checked[i]} onToggle={() => onToggle(i)} />
+        ))}
+      </View>
+    );
+  }
+
+  const groups = new Map<string, number[]>();
+  ingredients.forEach((ing, i) => {
+    const key = ing.category ?? 'other';
+    (groups.get(key) ?? groups.set(key, []).get(key)!).push(i);
+  });
+  const orderedKeys = [...groups.keys()].sort(
+    (a, b) => CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b),
+  );
+
+  return (
+    <View style={{ gap: 20 }}>
+      {orderedKeys.map((key) => (
+        <View key={key}>
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.9, textTransform: 'uppercase', color: theme.dim2, marginBottom: 2 }}>
+            {CATEGORY_LABEL[key] ?? 'Other'}
+          </Text>
+          {groups.get(key)!.map((i) => (
+            <IngredientRow key={i} ingredient={ingredients[i]} scale={scale} done={!!checked[i]} onToggle={() => onToggle(i)} />
+          ))}
+        </View>
+      ))}
+    </View>
   );
 }
 

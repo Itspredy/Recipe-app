@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon';
 import { GradientButton, PhotoSlot } from '../../components/ui';
 import { getRecipe, markCooked } from '../../db/store';
 import { useTheme } from '../../lib/ThemeProvider';
-import { parseStepMinutes, stepIngredients } from '../../lib/cook';
+import { stepIngredients, stepMinutes } from '../../lib/cook';
 import { fonts, gradientProps, radius } from '../../lib/theme';
 import { totalMinutes, type Recipe } from '../../lib/types';
 
@@ -48,7 +48,7 @@ export default function CookScreen() {
   // Clamp so a fast double-tap can never run the index past the last step.
   const safeStep = Math.min(Math.max(step, 0), steps.length - 1);
   const current = steps[safeStep];
-  const mins = current ? parseStepMinutes(current.text) : null;
+  const mins = current ? stepMinutes(current) : null;
   const ings = current ? stepIngredients(current.text, recipe.ingredients) : [];
   const isLast = safeStep === steps.length - 1;
   const progress = Math.round(((safeStep + 1) / steps.length) * 100);
