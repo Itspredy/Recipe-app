@@ -11,19 +11,22 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_ddfuyIgiTtQFBHujLhgrKtwSRFw"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_ddfuyIgiTtQFBHujLhgrKtwSRFw"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://recipe-rapidapi-backend-production.up.railway.app",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_ddfuyIgiTtQFBHujLhgrKtwSRFw"
       }
     }
   },
