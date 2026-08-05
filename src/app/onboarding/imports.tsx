@@ -68,7 +68,7 @@ export default function ImportsScreen() {
             }}
           >
             <Image
-              source={require('../../../assets/images/icon.png')}
+              source={require('../../../assets/images/Icon-Real.png')}
               style={{ width: 108, height: 108, borderRadius: 26 }}
               contentFit="cover"
             />

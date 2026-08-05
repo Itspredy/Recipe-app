@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
@@ -26,7 +27,16 @@ export default function WatchScreen() {
 
       <View style={{ marginTop: 20, flexDirection: 'row', gap: 12 }}>
         <View style={{ width: 128, height: 220, borderRadius: 22, overflow: 'hidden', backgroundColor: '#171018' }}>
-          <LinearGradient colors={['#3B2E4F', '#171018']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <Image
+            source={require('../../../assets/images/Example.png')}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['rgba(18,12,22,0.05)', 'rgba(18,12,22,0.55)']}
+            locations={[0.55, 1]}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
           <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <Text style={{ color: '#fff', fontSize: 11, fontFamily: fonts.body }}>&quot;two tablespoons…&quot;</Text>
           </View>

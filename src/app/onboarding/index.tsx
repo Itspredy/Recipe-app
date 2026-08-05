@@ -46,7 +46,7 @@ export default function WelcomeScreen() {
             }}
           />
           <Image
-            source={require('../../../assets/images/icon.png')}
+            source={require('../../../assets/images/Icon-Real.png')}
             style={{ width: 168, height: 168, borderRadius: 40 }}
             contentFit="cover"
           />

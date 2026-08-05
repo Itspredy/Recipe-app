@@ -2,13 +2,13 @@
   "expo": {
     "name": "Keepdish",
     "slug": "Recipe",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Icon-Real.png",
     "scheme": "recipe",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/ios-icon.png",
+      "icon": "./assets/images/Icon-Real.png",
       "bundleIdentifier": "com.kunalrecipe.saver",
       "supportsTablet": false,
       "infoPlist": {
@@ -26,7 +26,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/Icon-Real.png"
     },
     "plugins": [
       "expo-router",

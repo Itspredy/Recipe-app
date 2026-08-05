@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
@@ -63,12 +64,13 @@ export default function VideoDemoScreen() {
           backgroundColor: '#171018',
         }}
       >
-        <LinearGradient
-          colors={['#3B2E4F', '#1A1023']}
+        <Image
+          source={require('../../../assets/images/Example.png')}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          contentFit="cover"
         />
         <LinearGradient
-          colors={['rgba(18,12,22,0.55)', 'rgba(18,12,22,0.05)', 'rgba(18,12,22,0.6)', 'rgba(18,12,22,0.92)']}
+          colors={['rgba(18,12,22,0.5)', 'rgba(18,12,22,0.05)', 'rgba(18,12,22,0.55)', 'rgba(18,12,22,0.92)']}
           locations={[0, 0.3, 0.72, 1]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
@@ -116,9 +118,9 @@ export default function VideoDemoScreen() {
           <Text style={{ fontFamily: fonts.heading, fontSize: 22, color: '#fff' }}>Tap here</Text>
         </View>
 
-        <View style={{ position: 'absolute', left: 18, right: 86, bottom: 20, gap: 6 }}>
+        <View style={{ position: 'absolute', left: 18, right: 86, bottom: 44, gap: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-            <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: '#fff' }}>Honeydew Cook</Text>
+            <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: '#fff' }}>tiffy.cooks</Text>
             <LinearGradient
               colors={[theme.accsFrom, theme.accsTo]}
               style={{ paddingVertical: 4, paddingHorizontal: 11, borderRadius: 999 }}
@@ -126,8 +128,7 @@ export default function VideoDemoScreen() {
               <Text style={{ fontSize: 11, fontFamily: fonts.bodyBold, color: '#fff' }}>Follow</Text>
             </LinearGradient>
           </View>
-          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>Today&apos;s delicious miso butter pasta</Text>
-          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)' }}>hot_stuff_cookin · Original Audio</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>Creamy mushroom pasta, 20 minutes</Text>
         </View>
       </View>
 
