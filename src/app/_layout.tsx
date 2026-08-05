@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
 import { ThemeProvider, useTheme } from '../lib/ThemeProvider';
+import { UserProvider } from '../lib/UserProvider';
 
 // The share-extension native module isn't present in Expo Go (it needs a
 // custom dev client build) — the library's own FAQ recommends disabling it
@@ -33,7 +34,9 @@ export default function RootLayout() {
     <ShareIntentProvider options={{ disabled: IS_EXPO_GO, resetOnBackground: true }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <Root ready={fontsLoaded} />
+          <UserProvider>
+            <Root ready={fontsLoaded} />
+          </UserProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </ShareIntentProvider>
@@ -78,6 +81,7 @@ function Root({ ready }: { ready: boolean }) {
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add" options={{ presentation: 'transparentModal', animation: 'fade' }} />
         <Stack.Screen name="import" options={{ presentation: 'modal' }} />

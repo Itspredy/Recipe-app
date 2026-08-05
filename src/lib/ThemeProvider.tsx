@@ -6,6 +6,7 @@ const STORAGE_KEY = 'recipe.theme';
 
 type ThemeContextValue = {
   theme: Theme;
+  mode: 'dark' | 'light';
   toggle: () => void;
   setMode: (mode: 'dark' | 'light') => void;
 };
@@ -29,6 +30,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value: ThemeContextValue = {
     theme: mode === 'light' ? lightTheme : darkTheme,
+    mode,
     toggle: () => setMode(mode === 'light' ? 'dark' : 'light'),
     setMode,
   };

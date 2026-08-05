@@ -8,9 +8,11 @@ import { listRecipes } from '../../db/store';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts, radius } from '../../lib/theme';
 import type { RecipeSummary } from '../../lib/types';
+import { useUser } from '../../lib/UserProvider';
 
 export default function ProfileScreen() {
   const { theme, toggle } = useTheme();
+  const { name } = useUser();
   const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
 
@@ -42,7 +44,7 @@ export default function ProfileScreen() {
             <PhotoSlot icon="userFilled" />
           </View>
           <View style={{ gap: 3 }}>
-            <Text style={{ fontFamily: fonts.heading, fontSize: 24, color: theme.txt }}>Alex Mercer</Text>
+            <Text style={{ fontFamily: fonts.heading, fontSize: 24, color: theme.txt }}>{name || 'Add your name'}</Text>
             <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: theme.dim }}>alex@mercer.co</Text>
           </View>
         </View>
