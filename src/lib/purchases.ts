@@ -12,7 +12,7 @@ import Purchases, {
  * EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY, same pattern as eas.json's
  * EXPO_PUBLIC_API_URL) once App Store Connect products exist.
  */
-const TEST_KEY = 'test_QgprTJctVVhPguaFUCSeHydSPeN';
+const TEST_KEY = 'test_SrQYBIgVzCOkDYbGpMItBXRDSrU';
 const IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? TEST_KEY;
 const ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? TEST_KEY;
 
