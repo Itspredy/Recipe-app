@@ -47,7 +47,8 @@
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1
           }
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

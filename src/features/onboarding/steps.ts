@@ -14,7 +14,6 @@ export const ONBOARDING_STEPS = [
   'grocery', // 10
   'notifications', // 11
   'paywall', // 12
-  'signin', // 13
 ] as const;
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
