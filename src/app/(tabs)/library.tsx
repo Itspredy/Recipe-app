@@ -11,6 +11,7 @@ import { listRecipes } from '../../db/store';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts, radius } from '../../lib/theme';
 import { totalMinutes, type RecipeSummary } from '../../lib/types';
+import { useUser } from '../../lib/UserProvider';
 
 const CATEGORIES = ['All', 'Breakfast', 'Dinner', 'Desserts', 'Favorites', 'Quick', 'Vegetarian'];
 const ABS = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
@@ -33,7 +34,8 @@ function greeting(): string {
 }
 
 export default function LibraryScreen() {
-  const { theme } = useTheme();
+  const { theme, mode, toggle } = useTheme();
+  const { name } = useUser();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
@@ -64,18 +66,36 @@ export default function LibraryScreen() {
             <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 0.7, textTransform: 'uppercase', color: theme.dim2 }}>
               {greeting()}
             </Text>
-            <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 15, color: theme.dim }}>Hi Alex</Text>
+            <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 15, color: theme.dim }}>Hi{name ? ` ${name}` : ''}</Text>
           </View>
-          <Pressable
-            onPress={() => router.navigate('/profile')}
-            style={{ width: 42, height: 42, borderRadius: radius.pill, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' }}
-          >
-            <PhotoSlot icon="userFilled" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Pressable
+              onPress={toggle}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: radius.pill,
+                borderWidth: 1,
+                borderColor: theme.line,
+                backgroundColor: theme.card,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name={mode === 'dark' ? 'sun' : 'moon'} size={19} color={theme.txt} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.navigate('/profile')}
+              style={{ width: 42, height: 42, borderRadius: radius.pill, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' }}
+            >
+              <PhotoSlot icon="userFilled" />
+            </Pressable>
+          </View>
         </View>
 
         <Text style={{ fontFamily: fonts.heading, fontSize: 38, lineHeight: 40, color: theme.txt }}>
-          What are we cooking, <Text style={{ color: theme.acc }}>Alex?</Text>
+          What are we cooking{name ? ', ' : ''}
+          {name ? <Text style={{ color: theme.acc }}>{name}?</Text> : '?'}
         </Text>
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -196,11 +216,29 @@ export default function LibraryScreen() {
 }
 
 function EmptyLibrary() {
-  const { theme } = useTheme();
+  const { theme, mode, toggle } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   return (
     <ScreenBackground>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30, gap: 18 }}>
+      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 20, alignItems: 'flex-end' }}>
+        <Pressable
+          onPress={toggle}
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: radius.pill,
+            borderWidth: 1,
+            borderColor: theme.line,
+            backgroundColor: theme.card,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name={mode === 'dark' ? 'sun' : 'moon'} size={19} color={theme.txt} />
+        </Pressable>
+      </View>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30, gap: 18, marginTop: -60 }}>
         <View
           style={{
             width: 112,

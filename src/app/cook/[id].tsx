@@ -1,14 +1,14 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 import { Icon } from '../../components/Icon';
 import { GradientButton, PhotoSlot } from '../../components/ui';
 import { getRecipe, markCooked } from '../../db/store';
 import { useTheme } from '../../lib/ThemeProvider';
 import { stepIngredients, stepMinutes } from '../../lib/cook';
-import { fonts, gradientProps, radius } from '../../lib/theme';
+import { fonts, radius } from '../../lib/theme';
 import { totalMinutes, type Recipe } from '../../lib/types';
 
 export default function CookScreen() {
@@ -51,7 +51,6 @@ export default function CookScreen() {
   const mins = current ? stepMinutes(current) : null;
   const ings = current ? stepIngredients(current.text, recipe.ingredients) : [];
   const isLast = safeStep === steps.length - 1;
-  const progress = Math.round(((safeStep + 1) / steps.length) * 100);
   const mm = Math.floor(secs / 60);
   const ss = String(secs % 60).padStart(2, '0');
 
@@ -82,56 +81,87 @@ export default function CookScreen() {
     );
   }
 
+  const timerBig = secs > 0 ? `${mm}:${ss}` : `${mins ?? 0}:00`;
+  const timerCap = secs > 0 ? 'running' : mins ? 'tap to start' : 'no timer';
+  const ringR = 99;
+  const ringCirc = 2 * Math.PI * ringR;
+  const ringFraction = mins ? secs / (mins * 60) : 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
-        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: theme.dim2 }}>
-          Step {safeStep + 1} of {steps.length}
-        </Text>
+      {/* Header — dot progress + close */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {steps.map((_, i) => (
+            <View
+              key={i}
+              style={{
+                width: i <= safeStep ? 26 : 6,
+                height: 6,
+                borderRadius: radius.pill,
+                backgroundColor: i <= safeStep ? theme.acc : theme.card2,
+              }}
+            />
+          ))}
+        </View>
         <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: radius.pill, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="close" size={17} color={theme.txt} />
         </Pressable>
       </View>
 
-      {/* Progress */}
-      <View style={{ height: 6, borderRadius: radius.pill, backgroundColor: theme.card2, overflow: 'hidden', marginBottom: 40 }}>
-        <LinearGradient colors={[theme.accsFrom, theme.accsTo]} {...gradientProps} style={{ height: '100%', width: `${progress}%`, borderRadius: radius.pill }} />
-      </View>
+      {/* Timer ring + step */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 30 }}>
+        <Pressable
+          onPress={startTimer}
+          style={{
+            width: 210,
+            height: 210,
+            borderRadius: radius.pill,
+            backgroundColor: theme.card,
+            borderWidth: 1,
+            borderColor: theme.line,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+          }}
+        >
+          <Svg width={210} height={210} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+            <Circle
+              cx={105}
+              cy={105}
+              r={ringR}
+              fill="none"
+              stroke={theme.acc}
+              strokeWidth={4}
+              strokeLinecap="round"
+              strokeDasharray={ringCirc}
+              strokeDashoffset={ringCirc * (1 - ringFraction)}
+              opacity={secs > 0 ? 1 : 0.18}
+            />
+          </Svg>
+          <Text style={{ fontFamily: fonts.heading, fontSize: 44, color: theme.txt }}>{timerBig}</Text>
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase', color: theme.dim2 }}>
+            {timerCap}
+          </Text>
+        </Pressable>
 
-      {/* Step body */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 26 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: fonts.heading, fontSize: 40, lineHeight: 46, color: theme.txt }}>{current?.text}</Text>
+        <Text style={{ fontFamily: fonts.heading, fontSize: 30, lineHeight: 35, color: theme.txt, textAlign: 'center' }}>
+          {current?.text}
+        </Text>
 
         {ings.length ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {ings.map((g, i) => (
-              <View key={i} style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.pill }}>
-                <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: theme.dim }}>{g}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14.5, color: theme.dim, textAlign: 'center' }}>
+            {ings.join(' · ')}
+          </Text>
         ) : null}
-
-        {mins ? (
-          <Pressable
-            onPress={startTimer}
-            style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 11, height: 56, paddingHorizontal: 22, borderRadius: radius.md, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.acc }}
-          >
-            <Icon name="clock" size={20} color={theme.acc} />
-            <Text style={{ fontFamily: fonts.heading, fontSize: 19, color: theme.acc }}>
-              {secs > 0 ? `${mm}:${ss} left` : `Start ${mins} min timer`}
-            </Text>
-          </Pressable>
-        ) : null}
-      </ScrollView>
+      </View>
 
       {/* Nav */}
-      <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-        <Pressable onPress={prev} disabled={step === 0} style={{ width: 76, height: 66, borderRadius: radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center', opacity: step === 0 ? 0.4 : 1 }}>
+      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <Pressable onPress={prev} disabled={step === 0} style={{ width: 66, height: 66, borderRadius: radius.pill, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, alignItems: 'center', justifyContent: 'center', opacity: step === 0 ? 0.4 : 1 }}>
           <Icon name="chevronLeft" size={22} color={theme.txt} />
         </Pressable>
-        <GradientButton label={isLast ? 'Finish' : 'Next step'} iconRight="arrowRight" height={66} onPress={next} style={{ flex: 1 }} />
+        <GradientButton label={isLast ? 'Finish' : 'Next step'} height={66} onPress={next} style={{ flex: 1, borderRadius: radius.pill }} />
       </View>
     </View>
   );
