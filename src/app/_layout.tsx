@@ -14,6 +14,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
 import { ThemeProvider, useTheme } from '../lib/ThemeProvider';
 import { UserProvider } from '../lib/UserProvider';
+import { configurePurchases } from '../lib/purchases';
+
+configurePurchases();
 
 // The share-extension native module isn't present in Expo Go (it needs a
 // custom dev client build) — the library's own FAQ recommends disabling it

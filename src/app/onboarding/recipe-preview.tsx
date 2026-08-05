@@ -1,7 +1,7 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Icon } from '../../components/Icon';
-import { PhotoSlot } from '../../components/ui';
 import { Body, Float, Headline, OnboardingScreen, PrimaryCTA } from '../../features/onboarding/components';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts } from '../../lib/theme';
@@ -32,7 +32,12 @@ export default function RecipePreviewScreen() {
       <Float distance={5} duration={4200} style={{ marginTop: 22 }}>
         <View style={{ borderRadius: 26, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, overflow: 'hidden', ...theme.shadow }}>
           <View style={{ height: 168 }}>
-            <PhotoSlot title="Creamy Miso Butter Pasta" icon="restaurant" />
+            <Image
+              source={require('../../../assets/images/Example.png')}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+              contentPosition="bottom"
+            />
             <View
               style={{
                 position: 'absolute',

@@ -28,7 +28,11 @@ export default function ShareSheetScreen() {
   return (
     <OnboardingScreen step="share-sheet" scroll={false}>
       <View style={{ flex: 1, borderRadius: 28, overflow: 'hidden', backgroundColor: '#120C16' }}>
-        <LinearGradient colors={['#3B2E4F', '#171018']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <Image
+          source={require('../../../assets/images/Example.png')}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          contentFit="cover"
+        />
         <LinearGradient
           colors={['rgba(18,12,22,0.35)', 'rgba(18,12,22,0.72)', 'rgba(18,12,22,0.94)']}
           locations={[0, 0.55, 1]}
@@ -61,14 +65,18 @@ export default function ShareSheetScreen() {
           <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(32,30,29,0.2)' }} />
 
           <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: '#2A1A12', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="playCircle" size={22} color="#fff" />
+            <View style={{ width: 46, height: 46, borderRadius: 12, overflow: 'hidden' }}>
+              <Image
+                source={require('../../../assets/images/Example.png')}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#201E1D', fontFamily: fonts.bodyBold, fontSize: 15 }} numberOfLines={1}>
-                Creamy Miso Butter Pasta
+                Creamy Mushroom Pasta
               </Text>
-              <Text style={{ color: '#6B5F52', fontFamily: fonts.body, fontSize: 12, marginTop: 2 }}>tiktok.com · Video</Text>
+              <Text style={{ color: '#6B5F52', fontFamily: fonts.body, fontSize: 12, marginTop: 2 }}>instagram.com · Video</Text>
             </View>
             <Text style={{ color: '#3E7BEE', fontFamily: fonts.bodyMedium, fontSize: 13 }}>Options ›</Text>
           </View>
@@ -95,7 +103,7 @@ export default function ShareSheetScreen() {
                     borderColor: theme.acc,
                   }}
                 >
-                  <Image source={require('../../../assets/images/icon.png')} style={{ width: 40, height: 40, borderRadius: 9 }} contentFit="cover" />
+                  <Image source={require('../../../assets/images/Icon-Real.png')} style={{ width: 40, height: 40, borderRadius: 9 }} contentFit="cover" />
                 </View>
               </Float>
               <Text style={{ fontSize: 11, color: '#201E1D', fontFamily: fonts.bodyBold }}>KeepDish</Text>

@@ -82,7 +82,7 @@ export default function NameScreen() {
 
       <GlassCard style={{ marginTop: 18, flexDirection: 'row', gap: 13, alignItems: 'center' }}>
         <Image
-          source={require('../../../assets/images/icon.png')}
+          source={require('../../../assets/images/Icon-Real.png')}
           style={{ width: 40, height: 40, borderRadius: 11 }}
           contentFit="cover"
         />

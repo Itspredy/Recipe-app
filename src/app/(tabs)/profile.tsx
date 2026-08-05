@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { PhotoSlot, ScreenBackground } from '../../components/ui';
@@ -30,7 +31,7 @@ export default function ProfileScreen() {
     { label: 'Units', value: 'Imperial' },
     { label: 'Appearance', value: theme.isDark ? 'Dark' : 'Light' },
     { label: 'iCloud sync', value: 'On' },
-    { label: 'About Recipe', value: '2.1' },
+    { label: 'About Keepdish', value: '2.1' },
   ];
 
   return (
@@ -92,6 +93,26 @@ export default function ProfileScreen() {
           <Icon name={theme.isDark ? 'sun' : 'moon'} size={19} color={theme.txt} />
           <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: theme.txt }}>Switch appearance</Text>
         </Pressable>
+
+        {Platform.OS !== 'web' ? (
+          <Pressable
+            onPress={() => RevenueCatUI.presentCustomerCenter()}
+            style={{
+              height: 52,
+              borderRadius: radius.md,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.line,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 9,
+            }}
+          >
+            <Icon name="star" size={17} color={theme.acc} />
+            <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: theme.txt }}>Manage subscription</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </ScreenBackground>
   );

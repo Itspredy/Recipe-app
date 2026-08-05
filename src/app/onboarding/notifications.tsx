@@ -62,7 +62,7 @@ export default function NotificationsScreen() {
 
         <GlassCard style={{ marginTop: 26, width: '100%', flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
           <Image
-            source={require('../../../assets/images/icon.png')}
+            source={require('../../../assets/images/Icon-Real.png')}
             style={{ width: 34, height: 34, borderRadius: 9 }}
             contentFit="cover"
           />
