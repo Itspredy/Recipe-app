@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { PhotoSlot, ScreenBackground } from '../../components/ui';
 import { listRecipes } from '../../db/store';
+import { checkProEntitlement, ENTITLEMENT_ID } from '../../lib/purchases';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts, radius } from '../../lib/theme';
 import type { RecipeSummary } from '../../lib/types';
@@ -21,10 +22,12 @@ export default function ProfileScreen() {
   const { name } = useUser();
   const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
+  const [isPro, setIsPro] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       listRecipes().then(setRecipes);
+      checkProEntitlement().then(setIsPro);
     }, []),
   );
 
@@ -123,6 +126,28 @@ export default function ProfileScreen() {
           <Icon name={theme.isDark ? 'sun' : 'moon'} size={19} color={theme.txt} />
           <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: theme.txt }}>Switch appearance</Text>
         </Pressable>
+
+        {Platform.OS !== 'web' && !isPro ? (
+          <Pressable
+            onPress={() =>
+              RevenueCatUI.presentPaywallIfNeeded({ requiredEntitlementIdentifier: ENTITLEMENT_ID }).then(() =>
+                checkProEntitlement().then(setIsPro),
+              )
+            }
+            style={{
+              height: 52,
+              borderRadius: radius.md,
+              backgroundColor: theme.acc,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 9,
+            }}
+          >
+            <Icon name="sparkles" size={17} color={theme.onAccent} />
+            <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: theme.onAccent }}>Upgrade to Pro</Text>
+          </Pressable>
+        ) : null}
 
         {Platform.OS !== 'web' ? (
           <Pressable

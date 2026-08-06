@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../components/ui';
@@ -18,6 +19,7 @@ import { useTheme } from '../lib/ThemeProvider';
 import { structureText } from '../lib/api';
 import { formatDuration, formatQuantity } from '../lib/format';
 import { toImportedRecipe } from '../lib/mapImported';
+import { ENTITLEMENT_ID } from '../lib/purchases';
 import { fonts, radius } from '../lib/theme';
 import type { ImportedRecipe } from '../lib/types';
 import { saveImported, useImportRecipe } from '../lib/useImportRecipe';
@@ -47,6 +49,12 @@ export default function ImportScreen() {
   const onImport = async () => {
     const result = await run(url.trim());
     if (!result) return;
+    if ('limitReached' in result) {
+      if (Platform.OS !== 'web') {
+        await RevenueCatUI.presentPaywallIfNeeded({ requiredEntitlementIdentifier: ENTITLEMENT_ID });
+      }
+      return;
+    }
     if ('existingId' in result) router.replace(`/recipe/${result.existingId}`);
     else setPreview(result.imported);
   };
