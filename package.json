@@ -17,6 +17,7 @@
     "expo-image": "~57.0.2",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.5",
+    "expo-notifications": "~57.0.8",
     "expo-router": "~57.0.10",
     "expo-share-intent": "^8.0.1",
     "expo-splash-screen": "~57.0.5",

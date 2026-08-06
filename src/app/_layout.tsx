@@ -15,6 +15,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { ThemeProvider, useTheme } from '../lib/ThemeProvider';
 import { UserProvider } from '../lib/UserProvider';
 import { configurePurchases } from '../lib/purchases';
+import { ensureDailyReminderScheduled } from '../lib/reminders';
 
 configurePurchases();
 
@@ -64,6 +65,12 @@ function Root({ ready }: { ready: boolean }) {
     resetShareIntent();
     router.replace(url ? { pathname: '/import', params: { url } } : '/import');
   }, [ready, hasShareIntent]);
+
+  // Re-checks (and re-schedules if needed) the daily recipe reminder on every
+  // launch — a no-op unless the user opted in during onboarding.
+  useEffect(() => {
+    if (ready) ensureDailyReminderScheduled();
+  }, [ready]);
 
   if (!ready) {
     return (

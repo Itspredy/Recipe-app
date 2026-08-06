@@ -13,6 +13,7 @@ import {
   SecondaryCTA,
 } from '../../features/onboarding/components';
 import { useOnboarding } from '../../features/onboarding/state';
+import { enableDailyReminder } from '../../lib/reminders';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts } from '../../lib/theme';
 
@@ -23,6 +24,7 @@ export default function NotificationsScreen() {
 
   const proceed = (optedIn: boolean) => {
     update('notifications', optedIn);
+    if (optedIn) enableDailyReminder();
     router.push('/onboarding/paywall');
   };
 
@@ -57,7 +59,7 @@ export default function NotificationsScreen() {
           Want a nudge when it&apos;s time to cook?
         </Text>
         <Body style={{ marginTop: 10, textAlign: 'center', maxWidth: 300 }}>
-          One message a day, at the hour you actually cook. Nothing else, ever.
+          One message a day, around dinnertime — a saved recipe worth cooking tonight. Nothing else, ever.
         </Body>
 
         <GlassCard style={{ marginTop: 26, width: '100%', flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
