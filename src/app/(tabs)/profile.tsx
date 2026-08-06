@@ -1,6 +1,7 @@
+import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
@@ -10,6 +11,10 @@ import { useTheme } from '../../lib/ThemeProvider';
 import { fonts, radius } from '../../lib/theme';
 import type { RecipeSummary } from '../../lib/types';
 import { useUser } from '../../lib/UserProvider';
+
+const PRIVACY_POLICY_URL = 'https://privacy-policy-rust-two.vercel.app/';
+const TERMS_OF_SERVICE_URL = 'https://terms-of-service-omega.vercel.app/';
+const SUPPORT_EMAIL = 'khatrikunal457@gmail.com';
 
 export default function ProfileScreen() {
   const { theme, toggle } = useTheme();
@@ -27,11 +32,18 @@ export default function ProfileScreen() {
   const cooked = recipes.filter((r) => r.cookedCount > 0).length;
   const favourites = recipes.filter((r) => r.isFavorite).length;
 
+  const appVersion = Constants.expoConfig?.version ?? '—';
+
   const settings = [
     { label: 'Units', value: 'Imperial' },
     { label: 'Appearance', value: theme.isDark ? 'Dark' : 'Light' },
-    { label: 'iCloud sync', value: 'On' },
-    { label: 'About Keepdish', value: '2.1' },
+    { label: 'About Keepdish', value: appVersion },
+  ];
+
+  const links = [
+    { label: 'Contact support', onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`) },
+    { label: 'Privacy Policy', onPress: () => Linking.openURL(PRIVACY_POLICY_URL) },
+    { label: 'Terms of Service', onPress: () => Linking.openURL(TERMS_OF_SERVICE_URL) },
   ];
 
   return (
@@ -46,7 +58,6 @@ export default function ProfileScreen() {
           </View>
           <View style={{ gap: 3 }}>
             <Text style={{ fontFamily: fonts.heading, fontSize: 24, color: theme.txt }}>{name || 'Add your name'}</Text>
-            <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 14, color: theme.dim }}>alex@mercer.co</Text>
           </View>
         </View>
 
@@ -71,8 +82,27 @@ export default function ProfileScreen() {
             >
               <Text style={{ flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: theme.txt }}>{s.label}</Text>
               <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 15, color: theme.dim }}>{s.value}</Text>
-              <Icon name="chevronRight" size={16} color={theme.dim2} />
             </View>
+          ))}
+        </View>
+
+        <View style={{ borderRadius: radius.lg, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' }}>
+          {links.map((l, i) => (
+            <Pressable
+              key={l.label}
+              onPress={l.onPress}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                padding: 16,
+                borderBottomWidth: i < links.length - 1 ? 1 : 0,
+                borderBottomColor: theme.line,
+              }}
+            >
+              <Text style={{ flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: theme.txt }}>{l.label}</Text>
+              <Icon name="chevronRight" size={16} color={theme.dim2} />
+            </Pressable>
           ))}
         </View>
 

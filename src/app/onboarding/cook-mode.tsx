@@ -84,13 +84,13 @@ export default function CookModeScreen() {
 
       <GlassCard style={{ flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 8 }}>
         <IconTile size={48} colors={[theme.sage, theme.accsTo]}>
-          <Icon name="mic" size={20} color="#fff" />
+          <Icon name="clock" size={20} color="#fff" />
         </IconTile>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.txt, fontFamily: fonts.bodyBold, fontSize: 14.5 }}>Hands messy? Just say next.</Text>
+          <Text style={{ color: theme.txt, fontFamily: fonts.bodyBold, fontSize: 14.5 }}>Every step keeps its own timer.</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <Pulse size={6} color={theme.sage} />
-            <Text style={{ color: theme.dim, fontFamily: fonts.body, fontSize: 12.5 }}>Listening — no tapping needed</Text>
+            <Text style={{ color: theme.dim, fontFamily: fonts.body, fontSize: 12.5 }}>Only the ingredients you need, highlighted</Text>
           </View>
         </View>
       </GlassCard>
