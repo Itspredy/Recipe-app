@@ -77,3 +77,28 @@ export function useOnboarding(): OnboardingContextValue {
 export async function hasCompletedOnboarding(): Promise<boolean> {
   return (await AsyncStorage.getItem(COMPLETE_KEY)) === '1';
 }
+
+/** Default serving count per household size — matches the numbers shown on the onboarding screen. */
+export const HOUSEHOLD_SERVINGS: Record<HouseholdSize, number> = {
+  solo: 1,
+  plusOne: 2,
+  family: 4,
+  roommates: 4,
+};
+
+/**
+ * Reads the household size chosen during onboarding, outside of
+ * OnboardingProvider's React context (which only wraps the onboarding route
+ * tree, not the rest of the app). Returns null if onboarding was never
+ * completed or the answer is missing.
+ */
+export async function getStoredHouseholdSize(): Promise<HouseholdSize | null> {
+  const raw = await AsyncStorage.getItem(ANSWERS_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<OnboardingAnswers>;
+    return parsed.household ?? null;
+  } catch {
+    return null;
+  }
+}

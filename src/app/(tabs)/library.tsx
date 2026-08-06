@@ -85,6 +85,21 @@ export default function LibraryScreen() {
               <Icon name={mode === 'dark' ? 'sun' : 'moon'} size={19} color={theme.txt} />
             </Pressable>
             <Pressable
+              onPress={() => router.push('/grocery')}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: radius.pill,
+                borderWidth: 1,
+                borderColor: theme.line,
+                backgroundColor: theme.card,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="list" size={19} color={theme.txt} />
+            </Pressable>
+            <Pressable
               onPress={() => router.navigate('/profile')}
               style={{ width: 42, height: 42, borderRadius: radius.pill, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' }}
             >

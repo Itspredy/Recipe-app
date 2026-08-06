@@ -98,6 +98,7 @@ function Root({ ready }: { ready: boolean }) {
         <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
         <Stack.Screen name="recipe/[id]" />
         <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="grocery" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { GradientButton, PhotoSlot, ScreenBackground, Tag } from '../../components/ui';
 import { getRecipe, saveNotes, toggleFavorite } from '../../db/store';
+import { getStoredHouseholdSize, HOUSEHOLD_SERVINGS } from '../../features/onboarding/state';
 import { useTheme } from '../../lib/ThemeProvider';
 import { stepMinutes } from '../../lib/cook';
 import { formatDuration, formatQuantity } from '../../lib/format';
@@ -30,10 +31,10 @@ export default function RecipeDetail() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    getRecipe(id).then((r) => {
+    Promise.all([getRecipe(id), getStoredHouseholdSize()]).then(([r, household]) => {
       if (!r) return;
       setRecipe(r);
-      setServings(r.servings || 1);
+      setServings(household ? HOUSEHOLD_SERVINGS[household] : r.servings || 1);
       setFav(r.isFavorite);
       setNotes(r.notes);
     });
