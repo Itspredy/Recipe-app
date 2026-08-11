@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { parseRecipe } from './api';
 import { findBySourceUrl, saveImported } from '../db/store';
+import { hasFreeImportRemaining, recordFreeImportUsed } from './importLimit';
 import { toImportedRecipe } from './mapImported';
+import { checkProEntitlement } from './purchases';
 import type { JobStage } from './serverTypes';
 import type { ImportedRecipe } from './types';
 
@@ -9,7 +11,9 @@ type Status = 'idle' | 'importing' | 'error';
 
 /**
  * Parse a link into a recipe and hand back the imported data for a preview step.
- * Reuses an already-saved recipe if the same link was imported before.
+ * Reuses an already-saved recipe if the same link was imported before. Free tier
+ * is capped at one new link import per calendar month — pasted-text/caption
+ * imports (the `/structure` fallback) are never gated here.
  */
 export function useImportRecipe() {
   const [status, setStatus] = useState<Status>('idle');
@@ -17,7 +21,9 @@ export function useImportRecipe() {
   const [stage, setStage] = useState<JobStage>(null);
 
   const run = useCallback(
-    async (url: string): Promise<{ existingId: string } | { imported: ImportedRecipe } | null> => {
+    async (
+      url: string,
+    ): Promise<{ existingId: string } | { imported: ImportedRecipe } | { limitReached: true } | null> => {
       setStatus('importing');
       setError(null);
       setStage(null);
@@ -29,9 +35,16 @@ export function useImportRecipe() {
           return { existingId };
         }
 
+        const isPro = await checkProEntitlement();
+        if (!isPro && !(await hasFreeImportRemaining())) {
+          setStatus('idle');
+          return { limitReached: true };
+        }
+
         const job = await parseRecipe(url, setStage);
 
         if (job.status === 'completed') {
+          if (!isPro) await recordFreeImportUsed();
           setStatus('idle');
           return { imported: toImportedRecipe(job) };
         }

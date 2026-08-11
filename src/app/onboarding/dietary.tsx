@@ -1,15 +1,11 @@
 import { useRouter } from 'expo-router';
-import { Text, View } from 'react-native';
-import { Icon } from '../../components/Icon';
+import { View } from 'react-native';
 import { Body, Headline, OnboardingScreen, PrimaryCTA, SelectChip } from '../../features/onboarding/components';
 import { useOnboarding } from '../../features/onboarding/state';
-import { useTheme } from '../../lib/ThemeProvider';
-import { fonts } from '../../lib/theme';
 
 const RESTRICTIONS = ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut allergy', 'Shellfish', 'Halal'];
 
 export default function DietaryScreen() {
-  const { theme } = useTheme();
   const router = useRouter();
   const { answers, toggleDietary } = useOnboarding();
   const hasAny = answers.dietary.length > 0;
@@ -21,7 +17,7 @@ export default function DietaryScreen() {
     >
       <Headline size={30}>Anything you avoid?</Headline>
       <Body style={{ marginTop: 12, maxWidth: 320 }}>
-        So we never suggest something you can&apos;t eat — and swap it out automatically.
+        So we know what matters to you as Keepdish grows.
       </Body>
 
       <View style={{ marginTop: 22, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -38,29 +34,6 @@ export default function DietaryScreen() {
           dashed
         />
       </View>
-
-      {answers.dietary.length > 0 && !answers.dietary.includes('none') ? (
-        <View
-          style={{
-            marginTop: 20,
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            gap: 10,
-            padding: 14,
-            borderRadius: 18,
-            backgroundColor: theme.card2,
-          }}
-        >
-          <Icon name="infoCircle" size={18} color={theme.acc} />
-          <Text style={{ flex: 1, color: theme.dim, fontFamily: fonts.body, fontSize: 13.5, lineHeight: 19 }}>
-            Miso pasta will swap to{' '}
-            <Text style={{ color: theme.txt, fontFamily: fonts.bodyBold }}>
-              {answers.dietary.includes('gluten-free') ? 'gluten-free spaghetti' : 'an ingredient that fits'}
-            </Text>
-            .
-          </Text>
-        </View>
-      ) : null}
     </OnboardingScreen>
   );
 }
