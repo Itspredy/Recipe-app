@@ -1,12 +1,13 @@
 import Constants from 'expo-constants';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { PhotoSlot, ScreenBackground } from '../../components/ui';
 import { listRecipes } from '../../db/store';
+import { deleteAllUserData } from '../../lib/deleteAccount';
 import { checkProEntitlement, ENTITLEMENT_ID } from '../../lib/purchases';
 import { useTheme } from '../../lib/ThemeProvider';
 import { fonts, radius } from '../../lib/theme';
@@ -18,11 +19,13 @@ const TERMS_OF_SERVICE_URL = 'https://terms-of-service-omega.vercel.app/';
 const SUPPORT_EMAIL = 'khatrikunal457@gmail.com';
 
 export default function ProfileScreen() {
-  const { theme, toggle } = useTheme();
-  const { name } = useUser();
+  const { theme, toggle, setMode } = useTheme();
+  const { name, setName } = useUser();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [isPro, setIsPro] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -30,6 +33,28 @@ export default function ProfileScreen() {
       checkProEntitlement().then(setIsPro);
     }, []),
   );
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'This permanently erases every recipe, your name, and all preferences from this device. This can’t be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete everything',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            await deleteAllUserData();
+            setName('');
+            setMode('dark');
+            setDeleting(false);
+            router.replace('/onboarding');
+          },
+        },
+      ],
+    );
+  };
 
   const saved = recipes.length;
   const cooked = recipes.filter((r) => r.cookedCount > 0).length;
@@ -168,6 +193,27 @@ export default function ProfileScreen() {
             <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: theme.txt }}>Manage subscription</Text>
           </Pressable>
         ) : null}
+
+        <Pressable
+          onPress={confirmDeleteAccount}
+          disabled={deleting}
+          style={{
+            height: 52,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#e5776b',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 9,
+            opacity: deleting ? 0.5 : 1,
+          }}
+        >
+          <Icon name="trash" size={17} color="#e5776b" />
+          <Text style={{ fontFamily: fonts.heading, fontSize: 16, color: '#e5776b' }}>
+            {deleting ? 'Deleting…' : 'Delete account'}
+          </Text>
+        </Pressable>
       </ScrollView>
     </ScreenBackground>
   );

@@ -41,6 +41,14 @@ async function writeAll(map: RecipeMap): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(map));
 }
 
+/** Erases every saved recipe and resets the module's in-memory cache, so the
+ * next read starts completely fresh (including reseeding demo recipes, same
+ * as a real first launch) instead of serving stale data from memory. */
+export async function wipeAllRecipes(): Promise<void> {
+  cache = null;
+  await AsyncStorage.multiRemove([KEY, SEED_FLAG]);
+}
+
 function toSummary(r: Recipe): RecipeSummary {
   return {
     id: r.id,
